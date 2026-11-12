@@ -261,7 +261,12 @@ def predict(req: PredictRequest) -> dict[str, Any]:
         - 500 si le modèle ne peut pas être chargé,
         - 400 si une erreur survient lors de la prédiction.
     """
-    request_id = (req.request_id or "").strip() or str(uuid4())
+    if not req.request_id : 
+        raise HTTPException(
+            status_code = 400,
+            detail ="null request are not allowed",
+            )
+    request_id = req.request_id.strip() or str(uuid4())
     try:
         model_name, model = load_model_if_needed()
     except Exception as exc:
