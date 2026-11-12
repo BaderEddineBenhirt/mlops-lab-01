@@ -120,7 +120,7 @@ def generate_churn_dataset(n: int, seed: int = 42) -> pd.DataFrame:
 
     # Modèle logistique : combinaison linéaire des features
     base_logit = (
-        1.2
+        1.3
         + 0.55 * num_complaints
         - 0.03 * tenure_months
         - 0.02 * avg_session_minutes
