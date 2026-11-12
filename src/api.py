@@ -25,7 +25,7 @@ import json
 import time
 from pathlib import Path
 from typing import Any, Optional
-
+from uuid import uuid4
 
 import joblib
 import pandas as pd
@@ -83,7 +83,7 @@ class PredictRequest(BaseModel):
     avg_session_minutes: float = Field(..., ge=0.0, le=500.0)
     plan_type: str
     region: str
-    request_id: Optional[str] = None
+    request_id: Optional[str] = None 
 
 
 
@@ -261,6 +261,7 @@ def predict(req: PredictRequest) -> dict[str, Any]:
         - 500 si le modèle ne peut pas être chargé,
         - 400 si une erreur survient lors de la prédiction.
     """
+    request_id = (req.request_id or "").strip() or str(uuid4())
     try:
         model_name, model = load_model_if_needed()
     except Exception as exc:
@@ -293,7 +294,7 @@ def predict(req: PredictRequest) -> dict[str, Any]:
 
 
     out: dict[str, Any] = {
-        "request_id": req.request_id,
+        "request_id": request_id,
         "model_version": model_name,
         "prediction": pred,
         "probability": round(proba, 6),
