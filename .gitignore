@@ -1,0 +1,8 @@
+venv_mlops/
+.venv/
+__pycache__/
+*.pyc
+.env
+logs/
+models/
+data/
