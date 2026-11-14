@@ -1,0 +1,149 @@
+
+name: MLOps CI/CD - GitFlow
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "release/**"
+      - "hotfix/**"
+
+  pull_request:
+    branches:
+      - main
+      - develop
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  # JOB 1 : CI rapide
+  ci:
+    name: CI - Validation du code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.PY_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install dvc pandas numpy scikit-learn joblib
+
+      - name: Vérifier la syntaxe Python
+        run: python -m compileall -q src
+
+
+  # JOB 2 : Validation MLOps
+  ml_validation:
+    name: MLOps - Training and Quality Gate
+    needs: ci
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+      (github.ref == 'refs/heads/develop' ||
+       github.ref == 'refs/heads/main' ||
+       startsWith(github.ref, 'refs/heads/release/')))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.PY_VERSION }}
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install dvc pandas numpy scikit-learn joblib
+
+      - name: Afficher le DAG DVC
+        run: dvc dag
+
+      - name: Exécuter le pipeline ML
+        run: dvc repro
+
+      - name: Vérifier le Quality Gate
+        env:
+          F1_THRESHOLD: ${{ vars.F1_GATE_THRESHOLD }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          threshold = float(os.environ["F1_THRESHOLD"])
+
+          with open("reports/metrics.json", encoding="utf-8") as f:
+              metrics = json.load(f)
+
+          f1 = float(metrics["f1"])
+
+          print(f"F1 = {f1:.4f}")
+          print(f"Seuil = {threshold:.4f}")
+
+          if f1 < threshold:
+              raise SystemExit("Quality Gate FAILED")
+
+          print("Quality Gate PASSED")
+          PY
+
+      - name: Publier les artefacts ML
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-artifacts
+          path: |
+            models/
+            registry/
+            reports/
+          if-no-files-found: error
+
+
+  # JOB 3 : Livraison simulée
+  cd:
+    name: CD - Staging
+    needs: ml_validation
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
+    environment: staging
+
+    steps:
+      - name: Télécharger les artefacts validés
+        uses: actions/download-artifact@v4
+        with:
+          name: ml-artifacts
+          path: release_artifacts
+
+      - name: Simulation du déploiement
+        env:
+          APP_ENV: ${{ vars.APP_ENV }}
+        run: |
+          echo "=== CD SIMULATION ==="
+          echo "Environment: $APP_ENV"
+          echo "Validated artifacts:"
+          ls -R release_artifacts
+          echo "Deployment simulation completed"
