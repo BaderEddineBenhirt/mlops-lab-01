@@ -1,0 +1,35 @@
+stages:
+  generate:
+    cmd: python src/generate_data.py
+    deps:
+    - src/generate_data.py
+    outs:
+    - data/raw.csv
+  prepare:
+    cmd: python src/prepare_data.py
+    deps:
+    - data/raw.csv
+    - src/prepare_data.py
+    outs:
+    - data/processed.csv
+  train:
+    cmd: python src/train.py
+    deps:
+    - data/processed.csv
+    - src/pipeline_utils.py
+    - src/train.py
+    outs:
+    - data/splits
+    - models/candidate.joblib
+    - registry/candidate.json
+    - registry/train_stats.json
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - data/splits/test.csv
+    - models/candidate.joblib
+    - registry/candidate.json
+    - src/evaluate.py
+    - src/pipeline_utils.py
+    outs:
+    - reports/metrics.json

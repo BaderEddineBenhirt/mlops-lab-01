@@ -1,0 +1,91 @@
+schema: '2.0'
+stages:
+  generate:
+    cmd: python src/generate_data.py
+    deps:
+    - path: src/generate_data.py
+      hash: md5
+      md5: e60f10bca8505397c73b45572fbff762
+      size: 5551
+    outs:
+    - path: data/raw.csv
+      hash: md5
+      md5: c4f7a0520393448c557e2236ef51118c
+      size: 27933
+  prepare:
+    cmd: python src/prepare_data.py
+    deps:
+    - path: data/raw.csv
+      hash: md5
+      md5: c4f7a0520393448c557e2236ef51118c
+      size: 27933
+    - path: src/prepare_data.py
+      hash: md5
+      md5: c1aaced7044adc1be34a648a5719f676
+      size: 6441
+    outs:
+    - path: data/processed.csv
+      hash: md5
+      md5: c4f7a0520393448c557e2236ef51118c
+      size: 27933
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed.csv
+      hash: md5
+      md5: c4f7a0520393448c557e2236ef51118c
+      size: 27933
+    - path: src/pipeline_utils.py
+      hash: md5
+      md5: 9fa68a4d3cf5235ef97bfcf4b50f7a32
+      size: 1164
+    - path: src/train.py
+      hash: md5
+      md5: 7cb32de887b0d00dd1479e42922705b4
+      size: 4932
+    outs:
+    - path: data/splits
+      hash: md5
+      md5: 2fcbaf110ff3c2959c95243a12cf8759.dir
+      size: 28079
+      nfiles: 3
+    - path: models/candidate.joblib
+      hash: md5
+      md5: 50ece6358d5e3fa16964267efc4ac5c8
+      size: 3601
+    - path: registry/candidate.json
+      hash: md5
+      md5: 00720807ab4a2f2f9f08f201d7f8fca4
+      size: 836
+    - path: registry/train_stats.json
+      hash: md5
+      md5: aa5be3c02e325db76710368086ddbcf0
+      size: 372
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/splits/test.csv
+      hash: md5
+      md5: 15bc0d861b6c3f66f2cef3e397e9e62a
+      size: 7040
+    - path: models/candidate.joblib
+      hash: md5
+      md5: 50ece6358d5e3fa16964267efc4ac5c8
+      size: 3601
+    - path: registry/candidate.json
+      hash: md5
+      md5: 00720807ab4a2f2f9f08f201d7f8fca4
+      size: 836
+    - path: src/evaluate.py
+      hash: md5
+      md5: 9da5f6ecb8cfd60186f49c08aa8ed37e
+      size: 2652
+    - path: src/pipeline_utils.py
+      hash: md5
+      md5: 9fa68a4d3cf5235ef97bfcf4b50f7a32
+      size: 1164
+    outs:
+    - path: reports/metrics.json
+      hash: md5
+      md5: fb3a0fda98ac14766533088442cba1bd
+      size: 663
